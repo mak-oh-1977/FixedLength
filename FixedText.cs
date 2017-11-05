@@ -1,4 +1,5 @@
 ﻿using System;
+using System.ComponentModel;
 using System.Reflection;
 using System.Text;
 
@@ -75,8 +76,16 @@ namespace Utils
                 //  従って、不足バイト数ではなく不足文字数に換算して指定する
                 int padLen = fixedAttr.ByteLength - (enc.GetByteCount(value) - value.Length);
 
-                result.Append(value.PadRight(padLen, ' '));
+                switch (fixedAttr.PadType)
+                {
 
+                    case EPadType.Before:
+                        result.Append(value.PadLeft(padLen, fixedAttr.PadChar));
+                        break;
+                    default:
+                        result.Append(value.PadRight(padLen, fixedAttr.PadChar));
+                        break;
+                }
             }
 
             var by = enc.GetBytes(result.ToString());
@@ -122,8 +131,16 @@ namespace Utils
                 var dst = new byte[len];
                 Buffer.BlockCopy(src, pos, dst, 0, len);
 
-                var s = enc.GetString(dst);
-                info.SetValue(ret, s);
+                var s = enc.GetString(dst).Trim();
+
+                var converter = TypeDescriptor.GetConverter(info.PropertyType.GetType());
+                if (converter != null)
+                {
+                    //ConvertFromString(string text)の戻りは object なので T型でキャストする
+                    object o = converter.ConvertFromString("100");
+
+                    info.SetValue(ret, o);
+                }
 
                 pos += fixedAttr.ByteLength;
             }
@@ -132,6 +149,24 @@ namespace Utils
             return ret;
         }
 
+        public static bool TryParse<T>(string input, ref T result)
+        {
+            try
+            {
+                var converter = TypeDescriptor.GetConverter(typeof(T));
+                if (converter != null)
+                {
+                    //ConvertFromString(string text)の戻りは object なので T型でキャストする
+                    result = (T)converter.ConvertFromString(input);
+                    return true;
+                }
+                return false;
+            }
+            catch
+            {
+                return false;
+            }
+        }
     }
 
     /// <summary>
@@ -142,6 +177,10 @@ namespace Utils
     {
         //バイト長
         public int ByteLength;
+        //不足桁への文字埋めで使用する文字
+        public char PadChar = ' ';
+        //前埋め／後埋め
+        public EPadType PadType = EPadType.After;
     }
 
     /// <summary>
@@ -150,5 +189,13 @@ namespace Utils
     [AttributeUsage(AttributeTargets.Property)]
     public class RejectAttribute : Attribute
     {
+    }
+    /// <summary>
+    /// 不足桁文字埋めタイプ
+    /// </summary>
+    public enum EPadType
+    {
+        Before    //前埋め
+        , After    //後埋め
     }
 }

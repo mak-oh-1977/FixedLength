@@ -2,7 +2,7 @@
 using System.Text;
 using Utils;
 
-namespace FixedData
+namespace FixedLength
 {
     [FixedText(Encode = "Shift_JIS")]
     public class Todofuken
@@ -11,7 +11,7 @@ namespace FixedData
         /// 都道府県コード
         /// </summary>
         [Fixed(ByteLength = 2)]
-        public string Code { set; get; }
+        public int Code { set; get; }
 
         /// <summary>
         /// 都道府県名
@@ -32,7 +32,7 @@ namespace FixedData
         {
 
             var a = new Todofuken();
-            a.Code = "1";
+            a.Code = 1;
             a.Name = "北海道";
             a.Capital = "札幌市";
 
